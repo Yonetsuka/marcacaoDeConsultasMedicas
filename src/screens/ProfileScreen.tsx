@@ -1,122 +1,32 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components/native';
-import { ScrollView, ViewStyle } from 'react-native';
-import { Button, Input } from 'react-native-elements';
+import { Button, ListItem } from 'react-native-elements';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import theme from '../styles/theme';
 import Header from '../components/Header';
-import DoctorList from '../components/DoctorList';
-import TimeSlotList from '../components/TimeSlotList';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ViewStyle } from 'react-native';
 
-type CreateAppointmentScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'CreateAppointment'>;
+type ProfileScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 };
 
-interface Appointment {
-  id: string;
-  patientId: string;
-  patientName: string;
-  doctorId: string;
-  doctorName: string;
-  date: string;
-  time: string;
-  specialty: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
-}
+const ProfileScreen: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const navigation = useNavigation<ProfileScreenProps['navigation']>();
 
-interface Doctor {
-  id: string;
-  name: string;
-  specialty: string;
-  image: string;
-}
-
-// Lista de médicos disponíveis
-const availableDoctors: Doctor[] = [
-  {
-    id: '1',
-    name: 'Dr. João Silva',
-    specialty: 'Cardiologia',
-    image: 'https://randomuser.me/api/portraits/men/1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Dra. Maria Santos',
-    specialty: 'Pediatria',
-    image: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '3',
-    name: 'Dr. Pedro Oliveira',
-    specialty: 'Ortopedia',
-    image: 'https://randomuser.me/api/portraits/men/2.jpg',
-  },
-  {
-    id: '4',
-    name: 'Dra. Ana Costa',
-    specialty: 'Dermatologia',
-    image: 'https://randomuser.me/api/portraits/women/2.jpg',
-  },
-  {
-    id: '5',
-    name: 'Dr. Carlos Mendes',
-    specialty: 'Oftalmologia',
-    image: 'https://randomuser.me/api/portraits/men/3.jpg',
-  },
-];
-
-const CreateAppointmentScreen: React.FC = () => {
-  const { user } = useAuth();
-  const navigation = useNavigation<CreateAppointmentScreenProps['navigation']>();
-  const [date, setDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleCreateAppointment = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      if (!date || !selectedTime || !selectedDoctor) {
-        setError('Por favor, preencha a data e selecione um médico e horário');
-        return;
-      }
-
-      // Recupera consultas existentes
-      const storedAppointments = await AsyncStorage.getItem('@MedicalApp:appointments');
-      const appointments: Appointment[] = storedAppointments ? JSON.parse(storedAppointments) : [];
-
-      // Cria nova consulta
-      const newAppointment: Appointment = {
-        id: Date.now().toString(),
-        patientId: user?.id || '',
-        patientName: user?.name || '',
-        doctorId: selectedDoctor.id,
-        doctorName: selectedDoctor.name,
-        date,
-        time: selectedTime,
-        specialty: selectedDoctor.specialty,
-        status: 'pending',
-      };
-
-      // Adiciona nova consulta à lista
-      appointments.push(newAppointment);
-
-      // Salva lista atualizada
-      await AsyncStorage.setItem('@MedicalApp:appointments', JSON.stringify(appointments));
-
-      alert('Consulta agendada com sucesso!');
-      navigation.goBack();
-    } catch (err) {
-      setError('Erro ao agendar consulta. Tente novamente.');
-    } finally {
-      setLoading(false);
+  const getRoleText = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrador';
+      case 'doctor':
+        return 'Médico';
+      case 'patient':
+        return 'Paciente';
+      default:
+        return role;
     }
   };
 
@@ -124,44 +34,40 @@ const CreateAppointmentScreen: React.FC = () => {
     <Container>
       <Header />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Title>Agendar Consulta</Title>
+        <Title>Meu Perfil</Title>
 
-        <Input
-          placeholder="Data (DD/MM/AAAA)"
-          value={date}
-          onChangeText={setDate}
-          containerStyle={styles.input}
-          keyboardType="numeric"
-        />
-
-        <SectionTitle>Selecione um Horário</SectionTitle>
-        <TimeSlotList
-          onSelectTime={setSelectedTime}
-          selectedTime={selectedTime}
-        />
-
-        <SectionTitle>Selecione um Médico</SectionTitle>
-        <DoctorList
-          doctors={availableDoctors}
-          onSelectDoctor={setSelectedDoctor}
-          selectedDoctorId={selectedDoctor?.id}
-        />
-
-        {error ? <ErrorText>{error}</ErrorText> : null}
+        <ProfileCard>
+          <Avatar source={{ uri: user?.image || 'https://via.placeholder.com/150' }} />
+          <Name>{user?.name}</Name>
+          <Email>{user?.email}</Email>
+          <RoleBadge role={user?.role || ''}>
+            <RoleText>{getRoleText(user?.role || '')}</RoleText>
+          </RoleBadge>
+          
+          {user?.role === 'doctor' && (
+            <SpecialtyText>Especialidade: {user?.specialty}</SpecialtyText>
+          )}
+        </ProfileCard>
 
         <Button
-          title="Agendar"
-          onPress={handleCreateAppointment}
-          loading={loading}
+          title="Editar Perfil"
+          onPress={() => navigation.navigate('EditProfile' as any)}
+          containerStyle={styles.button as ViewStyle}
+          buttonStyle={styles.editButton}
+        />
+
+        <Button
+          title="Voltar"
+          onPress={() => navigation.goBack()}
           containerStyle={styles.button as ViewStyle}
           buttonStyle={styles.buttonStyle}
         />
 
         <Button
-          title="Cancelar"
-          onPress={() => navigation.goBack()}
+          title="Sair"
+          onPress={signOut}
           containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.cancelButton}
+          buttonStyle={styles.logoutButton}
         />
       </ScrollView>
     </Container>
@@ -172,19 +78,20 @@ const styles = {
   scrollContent: {
     padding: 20,
   },
-  input: {
-    marginBottom: 15,
-  },
   button: {
-    marginTop: 10,
+    marginBottom: 20,
     width: '100%',
   },
   buttonStyle: {
     backgroundColor: theme.colors.primary,
     paddingVertical: 12,
   },
-  cancelButton: {
-    backgroundColor: theme.colors.secondary,
+  editButton: {
+    backgroundColor: theme.colors.success,
+    paddingVertical: 12,
+  },
+  logoutButton: {
+    backgroundColor: theme.colors.error,
     paddingVertical: 12,
   },
 };
@@ -192,6 +99,10 @@ const styles = {
 const Container = styled.View`
   flex: 1;
   background-color: ${theme.colors.background};
+`;
+
+const ScrollView = styled.ScrollView`
+  flex: 1;
 `;
 
 const Title = styled.Text`
@@ -202,18 +113,62 @@ const Title = styled.Text`
   text-align: center;
 `;
 
-const SectionTitle = styled.Text`
-  font-size: 18px;
+const ProfileCard = styled.View`
+  background-color: ${theme.colors.background};
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  align-items: center;
+  border-width: 1px;
+  border-color: ${theme.colors.border};
+`;
+
+const Avatar = styled.Image`
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  margin-bottom: 16px;
+`;
+
+const Name = styled.Text`
+  font-size: 20px;
   font-weight: bold;
   color: ${theme.colors.text};
-  margin-bottom: 10px;
-  margin-top: 10px;
+  margin-bottom: 8px;
 `;
 
-const ErrorText = styled.Text`
-  color: ${theme.colors.error};
-  text-align: center;
-  margin-bottom: 10px;
+const Email = styled.Text`
+  font-size: 16px;
+  color: ${theme.colors.text};
+  margin-bottom: 8px;
 `;
 
-export default CreateAppointmentScreen;
+const RoleBadge = styled.View<{ role: string }>`
+  background-color: ${(props: { role: string }) => {
+    switch (props.role) {
+      case 'admin':
+        return theme.colors.primary + '20';
+      case 'doctor':
+        return theme.colors.success + '20';
+      default:
+        return theme.colors.secondary + '20';
+    }
+  }};
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+`;
+
+const RoleText = styled.Text`
+  color: ${theme.colors.text};
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const SpecialtyText = styled.Text`
+  font-size: 16px;
+  color: ${theme.colors.text};
+  margin-top: 8px;
+`;
+
+export default ProfileScreen;

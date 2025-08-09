@@ -103,6 +103,13 @@ const PatientDashboardScreen: React.FC = () => {
           buttonStyle={styles.buttonStyle}
         />
 
+        <Button
+          title="Configurações"
+          onPress={() => navigation.navigate('Settings')}
+          containerStyle={styles.button as ViewStyle}
+          buttonStyle={styles.settingsButton}
+        />
+
         {loading ? (
           <LoadingText>Carregando consultas...</LoadingText>
         ) : appointments.length === 0 ? (
@@ -145,11 +152,6 @@ const PatientDashboardScreen: React.FC = () => {
 };
 
 const styles = {
-  patientName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
   scrollContent: {
     padding: 20,
   },
@@ -163,6 +165,10 @@ const styles = {
   },
   logoutButton: {
     backgroundColor: theme.colors.error,
+    paddingVertical: 12,
+  },
+  settingsButton: {
+    backgroundColor: theme.colors.secondary,
     paddingVertical: 12,
   },
   doctorName: {
@@ -179,6 +185,11 @@ const styles = {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
+  },
+  patientName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
 };
 
@@ -232,4 +243,4 @@ const StatusText = styled.Text<StyledProps>`
   font-weight: 500;
 `;
 
-export default PatientDashboardScreen;
+export default PatientDashboardScreen; 
